@@ -10,6 +10,7 @@
 		<tns:Fixed month="OCTOBER" day="12" validFrom="1980" descriptionPropertiesKey="APARECIDA"/>
 		<tns:Fixed month="NOVEMBER" day="2" descriptionPropertiesKey="ALL_SOULS"/>
 		<tns:Fixed month="NOVEMBER" day="15" descriptionPropertiesKey="NATIONAL_DAY"/>
+		<tns:Fixed month="NOVEMBER" day="20" descriptionPropertiesKey="BLACK_CONSCIOUSNESS"/>
 		<tns:Fixed month="DECEMBER" day="25" descriptionPropertiesKey="CHRISTMAS"/>
 		<tns:ChristianHoliday type="EASTER" />
 		<tns:ChristianHoliday type="SHROVE_MONDAY"/>

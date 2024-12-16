@@ -38,16 +38,20 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 	private static DateFormat df4 = new SimpleDateFormat("MM-yyyy");
 	private static DateFormat df5 = new SimpleDateFormat("kk:mm");
 	
-	private static Integer DURACAO_SOBREAVISO_T1 = 8;
-	private static Integer DURACAO_SOBREAVISO_T2 = 12;
-	private static Integer DURACAO_SOBREAVISO_T3 = 4;
+	private static Integer DURACAO_SOBREAVISO_T1 = 13;
+	private static Integer DURACAO_SOBREAVISO_T2 = 24;
+	private static Integer DURACAO_SOBREAVISO_T3 = 0;
+	
+//	private static Integer DURACAO_SOBREAVISO_T1 = 8;
+//	private static Integer DURACAO_SOBREAVISO_T2 = 12;
+//	private static Integer DURACAO_SOBREAVISO_T3 = 4;
 
 	private Funcionario funcionario;
 
 	private List<Complemento> complementos;
 	
 	private boolean feriado = false;
-	private boolean finalSemana = false;
+	private boolean domingo = false;
 	
 	private int periodosHoraExtra;
 	private long totalHoraExtra50 = 0;
@@ -147,7 +151,7 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 				XWPFTableRow linha = t.getRow(i);
 				
 				this.feriado = false;
-				this.finalSemana = false;
+				this.domingo = false;
 				this.periodosHoraExtra = 0;
 				
 				if (dia.after(fim)) {
@@ -172,7 +176,7 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 					setText(data, df1.format(dia.getTime()), 4, true);
 					setText(semana, df3.format(dia.getTime()), 4, false);
 					
-					if (dia.get(Calendar.DAY_OF_WEEK) != Calendar.SATURDAY && dia.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) { // Dias Uteis
+					if (dia.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) { // Dias Uteis
 						if (!m.isHoliday(dia, HolidayType.OFFICIAL_HOLIDAY, "pa", "bel")) {
 							if (m.isHoliday(dia, HolidayType.OFFICIAL_HOLIDAY, "pa", "bel", "half")) { // Meio expediente
 								setText(linha.getTableCells().get(2), Util.obterHora(HorarioEnum.INICIO_MEIA_JORNADA), 4, false);
@@ -180,12 +184,14 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 								setText(linha.getTableCells().get(4), "", 4, false);
 								setText(linha.getTableCells().get(5), Util.obterHora(HorarioEnum.FIM_MEIA_JORNADA), 4, false);
 							} else { // Dia Normal
-								if (this.complementos.stream().filter(c -> c.getData().equals(dia.getTime()) 
-										&& (c.getCategoria() == CategoriaEnum.FERIAS || c.getCategoria() == CategoriaEnum.OUTROS)).count() == 0) { // Não férias nem outros
-									setText(linha.getTableCells().get(2), Util.obterHora(HorarioEnum.INICIO_JORNADA), 4, false);
-									setText(linha.getTableCells().get(3), Util.obterHora(HorarioEnum.INICIO_ALMOCO), 4, false);
-									setText(linha.getTableCells().get(4), Util.obterHora(HorarioEnum.FIM_ALMOCO), 4, false);
-									setText(linha.getTableCells().get(5), Util.obterHora(HorarioEnum.FIM_JORNADA), 4, false);
+								if (dia.get(Calendar.DAY_OF_WEEK) != Calendar.SATURDAY) {
+									if (this.complementos.stream().filter(c -> c.getData().equals(dia.getTime()) 
+											&& (c.getCategoria() == CategoriaEnum.FERIAS || c.getCategoria() == CategoriaEnum.OUTROS)).count() == 0) { // Não férias nem outros
+										setText(linha.getTableCells().get(2), Util.obterHora(HorarioEnum.INICIO_JORNADA), 4, false);
+										setText(linha.getTableCells().get(3), Util.obterHora(HorarioEnum.INICIO_ALMOCO), 4, false);
+										setText(linha.getTableCells().get(4), Util.obterHora(HorarioEnum.FIM_ALMOCO), 4, false);
+										setText(linha.getTableCells().get(5), Util.obterHora(HorarioEnum.FIM_JORNADA), 4, false);
+									}
 								}
 							}
 						} else {// Feriados
@@ -193,7 +199,7 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 							this.feriado = true;
 						}
 					} else {
-						this.finalSemana = true;
+						this.domingo = true;
 					}
 					
 					this.complementos.stream().filter(c -> c.getData().equals(dia.getTime())).forEach(c -> {
@@ -221,7 +227,7 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 								throw new UnsupportedOperationException("Só podem haver, no máximo, 2 períodos de horas-extra por dia");
 							}
 							
-							if (!this.feriado && !this.finalSemana) {// Hora Extra 50%
+							if (!this.feriado && !this.domingo) {// Hora Extra 50%
 								if (c.getInicio().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) && c.getInicio().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
 									long inicioPeriodo = c.getInicio().getTime();
 									long fimPeriodo = c.getFim().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora()) ? c.getFim().getTime() : HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora().getTime();
@@ -243,7 +249,7 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 								}
 							}
 							
-							if (!this.feriado && !this.finalSemana) {// Hora Extra Noturna 50%
+							if (!this.feriado && !this.domingo) {// Hora Extra Noturna 50%
 								if (c.getInicio().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getInicio().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
 									long inicioPeriodo = c.getInicio().getTime();
 									long fimPeriodo = c.getFim().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) ? c.getFim().getTime() : HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora().getTime();
