@@ -23,7 +23,7 @@ public class Complemento {
 	private Date fim;
 	
 	@CsvBindByName(column = "tab_109")
-	private Integer codigo;
+	private String descricao;
 	
 	public Date getData() {
 		return data;
@@ -57,16 +57,16 @@ public class Complemento {
 		this.fim = fim;
 	}
 
-	public Integer getCodigo() {
-		return codigo;
+	public String getDescricao() {
+		return descricao;
 	}
 
-	public void setCodigo(Integer codigo) {
-		this.codigo = codigo;
+	public void setDescricao(String descricao) {
+		this.descricao = descricao;
 	}
 
 	@Override
 	public String toString() {
-		return "Complemento [data=" + data + ", categoria=" + categoria + ", inicio=" + inicio + ", fim=" + fim + ", codigo=" + codigo + "]";
+		return "Complemento [data=" + data + ", categoria=" + categoria + ", inicio=" + inicio + ", fim=" + fim + ", descricao=" + descricao + "]";
 	}
 }

@@ -9,6 +9,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -38,14 +39,6 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 	private static DateFormat df4 = new SimpleDateFormat("MM-yyyy");
 	private static DateFormat df5 = new SimpleDateFormat("kk:mm");
 	
-	private static Integer DURACAO_SOBREAVISO_T1 = 13;
-	private static Integer DURACAO_SOBREAVISO_T2 = 24;
-	private static Integer DURACAO_SOBREAVISO_T3 = 0;
-	
-//	private static Integer DURACAO_SOBREAVISO_T1 = 8;
-//	private static Integer DURACAO_SOBREAVISO_T2 = 12;
-//	private static Integer DURACAO_SOBREAVISO_T3 = 4;
-
 	private Funcionario funcionario;
 
 	private List<Complemento> complementos;
@@ -204,7 +197,7 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 					
 					this.complementos.stream().filter(c -> c.getData().equals(dia.getTime())).forEach(c -> {
 						
-						Integer somaHorasExtras = this.complementos.stream()
+						long somaHorasExtras = this.complementos.stream()
 								.filter(c1 -> c1.getData().equals(dia.getTime()) && c1.getCategoria() == CategoriaEnum.HORA_EXTRA)
 								.mapToInt(c1 -> {
 									long diff = c1.getFim().getTime() - (c1.getFim().after(c1.getInicio()) ? c1.getInicio().getTime() : c1.getInicio().getTime() - TimeUnit.HOURS.toMillis(24));
@@ -227,84 +220,129 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 								throw new UnsupportedOperationException("Só podem haver, no máximo, 2 períodos de horas-extra por dia");
 							}
 							
-							if (!this.feriado && !this.domingo) {// Hora Extra 50%
-								if (c.getInicio().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) && c.getInicio().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().getTime();
-									long fimPeriodo = c.getFim().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora()) ? c.getFim().getTime() : HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora().getTime();
-									this.totalHoraExtra50 += fimPeriodo - inicioPeriodo;
-								} else  if (c.getFim().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) && c.getFim().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) ? c.getInicio().getTime() : HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora().getTime();
-									long fimPeriodo = c.getFim().getTime();
-									this.totalHoraExtra50 += fimPeriodo - inicioPeriodo;
-								}
-							} else {// Hora Extra 100%
-								if (c.getInicio().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) && c.getInicio().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().getTime();
-									long fimPeriodo = c.getFim().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora()) ? c.getFim().getTime() : HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora().getTime();
-									this.totalHoraExtra100 += fimPeriodo - inicioPeriodo;
-								} else if (c.getFim().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) && c.getFim().before(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().after(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) ? c.getInicio().getTime() : HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora().getTime();
-									long fimPeriodo = c.getFim().getTime();
-									this.totalHoraExtra100 += fimPeriodo - inicioPeriodo;
+							if (c.getInicio().before(HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora()) && c.getInicio().before(HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								Calendar cal = Calendar.getInstance();
+								cal.setTime(c.getInicio());
+								cal.add(Calendar.DAY_OF_YEAR, 1);
+								c.setInicio(cal.getTime());
+								
+								cal.setTime(c.getFim());
+								cal.add(Calendar.DAY_OF_YEAR, 1);
+								c.setFim(cal.getTime());
+							}
+							
+							long inicioPeriodo = 0;
+							long fimPeriodo = 0;
+							if (isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								inicioPeriodo = c.getInicio().getTime();
+								fimPeriodo = c.getFim().getTime();
+							} else if (isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && !isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								inicioPeriodo = c.getInicio().getTime();
+								fimPeriodo = HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora().getTime();
+							} else if (!isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								inicioPeriodo = HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime();
+								fimPeriodo = c.getFim().getTime();
+							}
+							
+							if (inicioPeriodo > 0 && fimPeriodo > 0) {// Possui hora extra noturna
+								if (!this.feriado && !this.domingo) {// Hora Extra 50%
+									this.totalHoraExtraNoturna50 += fimPeriodo - inicioPeriodo;
+								} else {// Hora Extra 100%
+									this.totalHoraExtraNoturna100 += fimPeriodo - inicioPeriodo;
 								}
 							}
 							
-							if (!this.feriado && !this.domingo) {// Hora Extra Noturna 50%
-								if (c.getInicio().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getInicio().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().getTime();
-									long fimPeriodo = c.getFim().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) ? c.getFim().getTime() : HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora().getTime();
-									this.totalHoraExtraNoturna50 += fimPeriodo - (fimPeriodo > inicioPeriodo ? inicioPeriodo : inicioPeriodo - TimeUnit.HOURS.toMillis(24));
-								} else if (c.getFim().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getFim().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getInicio().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora()) ? c.getInicio().getTime() : HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora().getTime();
-									long fimPeriodo = c.getFim().getTime();
-									this.totalHoraExtraNoturna50 += fimPeriodo - (fimPeriodo > inicioPeriodo ? inicioPeriodo : inicioPeriodo - TimeUnit.HOURS.toMillis(24));
-								}
-							} else {// Hora Extra Noturna 100%
-								if (c.getInicio().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getInicio().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().getTime();
-									long fimPeriodo = c.getFim().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) ? c.getFim().getTime() : HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora().getTime();
-									this.totalHoraExtraNoturna100 += fimPeriodo - (fimPeriodo > inicioPeriodo ? inicioPeriodo : inicioPeriodo - TimeUnit.HOURS.toMillis(24));
-								} else  if (c.getFim().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getFim().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora())) {
-									long inicioPeriodo = c.getInicio().before(HorarioEnum.MAX_HORA_EXTRA_NOTURNA.getHora()) || c.getInicio().after(HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora()) ? c.getInicio().getTime() : HorarioEnum.MIN_HORA_EXTRA_NOTURNA.getHora().getTime();
-									long fimPeriodo = c.getFim().getTime();
-									this.totalHoraExtraNoturna100 += fimPeriodo - (fimPeriodo > inicioPeriodo ? inicioPeriodo : inicioPeriodo - TimeUnit.HOURS.toMillis(24));
+							inicioPeriodo = 0;
+							fimPeriodo = 0;
+							if (!isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								inicioPeriodo = c.getInicio().getTime();
+								fimPeriodo = HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime();
+							} else if (isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && !isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								inicioPeriodo = HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora().getTime();
+								fimPeriodo = c.getFim().getTime();
+							} else if (!isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && !isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								inicioPeriodo = c.getInicio().getTime();
+								fimPeriodo = c.getFim().getTime() - (HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora().getTime() - HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime());
+							}
+							
+							if (inicioPeriodo > 0 && fimPeriodo > 0) {// Possui hora extra não noturna
+								if (!this.feriado && !this.domingo) {// Hora Extra 50%
+									this.totalHoraExtra50 += fimPeriodo - inicioPeriodo;
+								} else {// Hora Extra 100%
+									this.totalHoraExtra100 += fimPeriodo - inicioPeriodo;
 								}
 							}
 							
 							periodosHoraExtra++;
 							break;
 						case SOBREAVISO_T1:
+							
+							Calendar inicioT1 = Calendar.getInstance();
+							inicioT1.setTime(HorarioEnum.INICIO_SOBREAVISO_T1.getHora());
+							Calendar fimT1 = Calendar.getInstance();
+							fimT1.setTime(HorarioEnum.FIM_SOBREAVISO_T1.getHora());
+							
+							if (inicioT1.after(fimT1)) {
+								fimT1.add(Calendar.DAY_OF_MONTH, 1);
+							}
+							
+							int duracaoT1 = getDiferencaEmHoras(inicioT1.getTime(), fimT1.getTime());
+							
 							Calendar t1 = Calendar.getInstance();
 							t1.setTimeInMillis(0);
-							t1.set(Calendar.HOUR_OF_DAY, DURACAO_SOBREAVISO_T1);
+							t1.set(Calendar.HOUR_OF_DAY, duracaoT1);
 							t1.set(Calendar.MINUTE, 0);
 							t1.set(Calendar.SECOND, 0);
-							t1.add(Calendar.MINUTE, -somaHorasExtras);
+							t1.add(Calendar.MINUTE, (int) -somaHorasExtras);
 							
 							setText(linha.getTableCells().get(10), df5.format(t1.getTime()), 4, false);
-							this.totalSobreaviso += TimeUnit.HOURS.toMillis(DURACAO_SOBREAVISO_T1) - TimeUnit.MINUTES.toMillis(somaHorasExtras);
+							this.totalSobreaviso += TimeUnit.HOURS.toMillis(duracaoT1) - TimeUnit.MINUTES.toMillis(somaHorasExtras);
 							break;
 						case SOBREAVISO_T2:
+							
+							Calendar inicioT2 = Calendar.getInstance();
+							inicioT2.setTime(HorarioEnum.INICIO_SOBREAVISO_T2.getHora());
+							Calendar fimT2 = Calendar.getInstance();
+							fimT2.setTime(HorarioEnum.FIM_SOBREAVISO_T2.getHora());
+							
+							if (inicioT2.equals(fimT2) || inicioT2.after(fimT2)) {
+								fimT2.add(Calendar.DAY_OF_MONTH, 1);
+							}
+							
+							int duracaoT2 = getDiferencaEmHoras(inicioT2.getTime(), fimT2.getTime());
+							
 							Calendar t2 = Calendar.getInstance();
 							t2.setTimeInMillis(0);
-							t2.set(Calendar.HOUR_OF_DAY, DURACAO_SOBREAVISO_T2);
+							t2.set(Calendar.HOUR_OF_DAY, duracaoT2);
 							t2.set(Calendar.MINUTE, 0);
 							t2.set(Calendar.SECOND, 0);
-							t2.add(Calendar.MINUTE, -somaHorasExtras);
+							t2.add(Calendar.MINUTE, (int) -somaHorasExtras);
 							
 							setText(linha.getTableCells().get(10), df5.format(t2.getTime()), 4, false);
-							this.totalSobreaviso += TimeUnit.HOURS.toMillis(DURACAO_SOBREAVISO_T2) - TimeUnit.MINUTES.toMillis(somaHorasExtras);
+							this.totalSobreaviso += TimeUnit.HOURS.toMillis(duracaoT2) - TimeUnit.MINUTES.toMillis(somaHorasExtras);
 							break;
 						case SOBREAVISO_T3:
+							
+							Calendar inicioT3 = Calendar.getInstance();
+							inicioT3.setTime(HorarioEnum.INICIO_SOBREAVISO_T3.getHora());
+							Calendar fimT3 = Calendar.getInstance();
+							fimT3.setTime(HorarioEnum.FIM_SOBREAVISO_T3.getHora());
+							
+							if (inicioT3.after(fimT3)) {
+								fimT3.add(Calendar.DAY_OF_MONTH, 1);
+							}
+							
+							int duracaoT3 = getDiferencaEmHoras(inicioT3.getTime(), fimT3.getTime());
+							
 							Calendar t3 = Calendar.getInstance();
 							t3.setTimeInMillis(0);
-							t3.set(Calendar.HOUR_OF_DAY, DURACAO_SOBREAVISO_T3);
+							t3.set(Calendar.HOUR_OF_DAY, duracaoT3);
 							t3.set(Calendar.MINUTE, 0);
 							t3.set(Calendar.SECOND, 0);
-							t3.add(Calendar.MINUTE, -somaHorasExtras);
+							t3.add(Calendar.MINUTE, (int) -somaHorasExtras);
 							
 							setText(linha.getTableCells().get(10), df5.format(t3.getTime()), 4, false);
-							this.totalSobreaviso += TimeUnit.HOURS.toMillis(DURACAO_SOBREAVISO_T3) - TimeUnit.MINUTES.toMillis(somaHorasExtras);
+							this.totalSobreaviso += TimeUnit.HOURS.toMillis(duracaoT3) - TimeUnit.MINUTES.toMillis(somaHorasExtras);
 							break;
 						case FERIAS:
 							setText(linha.getTableCells().get(2), "FÉRIAS", 4, true);
@@ -322,8 +360,8 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 							break;
 						}
 						
-						if (c.getCodigo() != null) {
-							setText(linha.getTableCells().get(14), "" + c.getCodigo(), 4, true);
+						if (c.getDescricao() != null) {
+							setText(linha.getTableCells().get(14), c.getDescricao(), 4, true);
 						}
 					});
 				}
@@ -354,6 +392,26 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static boolean isDateBetween(Date d, Date a, Date b) {
+		if (a == null) {
+		    return b == null || d.compareTo(b) <= 0;
+		} else if (b == null) {
+		    return a.compareTo(d) <= 0;
+		} else {
+		    return a.compareTo(d) * d.compareTo(b) >= 0;
+		}
+	}
+	
+	public static int getDiferencaEmHoras(Date baseDate, Date currentDate) {
+
+		long m1 = baseDate.getTime();
+		long m2 = currentDate.getTime();
+		long horas = (m2 - m1) / (60 * 60 * 1000);
+		long minutos = (m2 - m1) / (60 * 1000);
+		long minutosFormatado = ((horas * 60) + minutos) - (horas * 60);
+		return (int) (minutosFormatado / 60);
 	}
 
 	/**
