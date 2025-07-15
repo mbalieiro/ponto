@@ -220,12 +220,8 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 								throw new UnsupportedOperationException("Só podem haver, no máximo, 2 períodos de horas-extra por dia");
 							}
 							
-							if (c.getInicio().before(HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora()) && c.getInicio().before(HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+							if (c.getFim().before(c.getInicio())) {
 								Calendar cal = Calendar.getInstance();
-								cal.setTime(c.getInicio());
-								cal.add(Calendar.DAY_OF_YEAR, 1);
-								c.setInicio(cal.getTime());
-								
 								cal.setTime(c.getFim());
 								cal.add(Calendar.DAY_OF_YEAR, 1);
 								c.setFim(cal.getTime());
@@ -242,6 +238,11 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 							} else if (!isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
 								inicioPeriodo = HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime();
 								fimPeriodo = c.getFim().getTime();
+							} else if (!isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && !isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
+								if (isDateBetween(HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), c.getInicio(), c.getFim())) {
+									inicioPeriodo = HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime();
+									fimPeriodo = HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora().getTime();
+								}
 							}
 							
 							if (inicioPeriodo > 0 && fimPeriodo > 0) {// Possui hora extra noturna
@@ -262,7 +263,11 @@ public class PreencherPontoXls implements CsvToBeanFilter {
 								fimPeriodo = c.getFim().getTime();
 							} else if (!isDateBetween(c.getInicio(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora()) && !isDateBetween(c.getFim(), HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora())) {
 								inicioPeriodo = c.getInicio().getTime();
-								fimPeriodo = c.getFim().getTime() - (HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora().getTime() - HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime());
+								if (isDateBetween(HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora(), c.getInicio(), c.getFim())) {
+									fimPeriodo = c.getFim().getTime() - (HorarioEnum.FIM_HORA_EXTRA_NOTURNA.getHora().getTime() - HorarioEnum.INICIO_HORA_EXTRA_NOTURNA.getHora().getTime());
+								} else {
+									fimPeriodo = c.getFim().getTime();
+								}
 							}
 							
 							if (inicioPeriodo > 0 && fimPeriodo > 0) {// Possui hora extra não noturna
