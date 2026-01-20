@@ -121,14 +121,15 @@
 		</tns:Holidays>
 		<tns:SubConfigurations hierarchy="bel" description="Belém">
 			<tns:Holidays>
-				<tns:Fixed month="JANUARY" day="12" descriptionPropertiesKey="ANIVERSARY_BELEM" localizedType="UNOFFICIAL_HOLIDAY"/>
+				<tns:Fixed month="JANUARY" day="12" descriptionPropertiesKey="BELEM_ANIVERSARY" localizedType="UNOFFICIAL_HOLIDAY"/>
 				<tns:Fixed month="DECEMBER" day="8" descriptionPropertiesKey="LADY_CONCEICAO"/>
 				<tns:FixedWeekday which="SECOND" month="OCTOBER" weekday="SUNDAY" descriptionPropertiesKey="CIRIO" />
 			</tns:Holidays>
-			<tns:SubConfigurations hierarchy="half" description="Meio expediente">
+			<tns:SubConfigurations hierarchy="half" description="Meio expediente Tarde">
 				<tns:Holidays>
 					<tns:ChristianHoliday type="ASH_WEDNESDAY"/>
 					<tns:FixedWeekday which="FOURTH" month="OCTOBER" weekday="MONDAY" descriptionPropertiesKey="RECIRIO" />
+					<tns:Fixed month="DECEMBER" day="24" descriptionPropertiesKey="CHRISTMAS_EVE"/>
 				</tns:Holidays>
 			</tns:SubConfigurations>
 		</tns:SubConfigurations>
